@@ -14,8 +14,11 @@ Due diligence. I shouldn't just start making a new service from scratch if one o
 
 Amidst all the side-chatter I got a polite and technical response from one of the OGS devs (flovo):
 > tldr: It eats up a big chunk of development time to change the way the reviews work. To allow multiple users to interact with the same board at the same time introduces a bunch of new issues to consider.
+
 > [in-depth explanation of network considerations]
+
 > All these concerns can be handled, but it will require big changes in the code. This asks for extra care to not risk the integrity of the whole service.
+
 > It can be done, but it’s not just flipping a switch. My estimation is it would take as much time as any new major feature.
 
 Technically, not a "no" but we should read this as "we will almost certainly not do this."
@@ -24,6 +27,12 @@ Fair and reasonable! But truth be told, I was *glad* to hear it, because it mean
 
 ## The Saga Begins
 
-So I got to work. According to the git commits on my first draft, between 10-9-2023 and 10-19-2023, I worked somewhat feverishly, adding basic graphics, websocket communication, an SGF parser, and basic Go game logic. The proof-of-concept looked like this:
+So I got to work. According to the git commits on my first draft, between 10-9-2023 and 10-19-2023, I worked somewhat feverishly, adding basic graphics, websocket communication, an SGF parser, and basic Go game logic. The board looked like this:
 
-![20231019](assets/golab1.png)
+![20231019]({{ site.baseurl }}/assets/golab1.png)
+
+If I remember right, the arrow buttons were cosmetic only, there was no logic to allow for moving through a game tree (besides adding stones). But I could load the same board state in two different browser windows, and (through the magic of websockets) input from one window would be reflected in the other. 
+
+## Catastrophe Strikes
+
+Unfortunately, just over a month later, I was unceremoniously [laid off](https://investors.broadcom.com/news-releases/news-release-details/broadcom-acquire-vmware-approximately-61-billion-cash-and-stock) during an acquisition. To keep this section brief, as it's only tangential to the main story, I found a new job in 2024 but I didn't have the same time or energy to devote to the "Go board with shared control" project.
