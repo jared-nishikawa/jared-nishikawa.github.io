@@ -1,5 +1,7 @@
 # Go Lab
 
+[TL;DR](https://github.com/golab/board)
+
 ## Backstory
 
 I play [Go](https://en.wikipedia.org/wiki/Go_(game)).
