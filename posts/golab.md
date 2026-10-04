@@ -25,7 +25,7 @@ Amidst all the side-chatter I got a polite and technical response from one of th
 
 Technically, not a "no" but we should read this as "we will almost certainly not do this."
 
-Fair and reasonable! But truth be told, I was *glad* to hear it, because it meant that I could make a stab at this with a clear conscience. Furthermore, the response on the forum post indicated that other people would find such an application useful.
+Fair and reasonable! But truth be told, I was *glad* to hear it, because it meant that I could make a stab at this with a clear conscience. Furthermore, the response on the forum post indicated that other people would find such an application useful. I was convinced, since I wasn't planning to make a "Go server" in the traditional sense, that I could build the project **around** managing the network issues.
 
 ## The Saga Begins
 
@@ -38,3 +38,22 @@ If I remember right, the arrow buttons were cosmetic only, there was no logic to
 ## Catastrophe Strikes
 
 Unfortunately, just over a month later, I was unceremoniously [laid off](https://investors.broadcom.com/news-releases/news-release-details/broadcom-acquire-vmware-approximately-61-billion-cash-and-stock) during an acquisition. To keep this section brief, as it's only tangential to the main story, I found a new job in 2024 but I didn't have the same time or energy to devote to the "Go board with shared control" project.
+
+## Renewed Energy
+
+We pick up the story again in January of 2025 (the project lay dormant through all of 2024, though I think I showed a demo to couple of Go friends).
+
+January 7, I started working on the project again in earnest. Looking back, I think I would attribute this to three things:
+  - Dissatisfaction with my job, and a desire to put my engineering skill to use
+  - The continued annoyance with "one user control" while reviewing on Go servers. (After all, now that I had noticed, I couldn't *stop* noticing how much it bothered me).
+  - My partner and I were planning to have kids soon, and I wanted to get this idea on its feet and out the door, if possible.
+
+From January until to the end of February, I was working on this almost every evening (evenings which I could have spent studying Go!). There are too many features to list, but suffice to say that I just kept adding features as I thought of them. I had deployed it and was using it with friends on a weekly basis, gathering ideas and implementing them as fast as I could.
+
+Here are a few snapshots that showed major design changes in these two months:
+
+![20250110]({{ site.baseurl }}/assets/golab2.png)
+
+![20250130]({{ site.baseurl }}/assets/golab3.png)
+
+![20250218]({{ site.baseurl }}/assets/golab4.png)
