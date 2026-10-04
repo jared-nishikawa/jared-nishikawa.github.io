@@ -48,7 +48,7 @@ January 7, I started working on the project again in earnest. Looking back, I th
   - The continued annoyance with "one user control" while reviewing on Go servers. (After all, now that I had noticed, I couldn't *stop* noticing how much it bothered me).
   - My partner and I were planning to have kids soon, and I wanted to get this idea on its feet and out the door, if possible.
 
-From January until to the end of February, I was working on this almost every evening (evenings which I could have spent studying Go!). There are too many features to list, but suffice to say that I just kept adding features as I thought of them. I had deployed it and was using it with friends on a weekly basis, gathering ideas and implementing them as fast as I could.
+From then until to the end of February, I was working on this almost every evening (evenings which I could have spent studying Go!). There are too many features to list, but suffice to say that I just kept adding features as I thought of them. I had deployed it and was using it with friends on a weekly basis, gathering ideas and implementing them as fast as I could.
 
 Here are a few snapshots that showed major design changes in these two months:
 
@@ -57,3 +57,34 @@ Here are a few snapshots that showed major design changes in these two months:
 ![20250130]({{ site.baseurl }}/assets/golab3.png)
 
 ![20250218]({{ site.baseurl }}/assets/golab4.png)
+
+At some point, it felt like I had something worth sharing with the Go community. I [made another post on the OGS forums](https://forums.online-go.com/t/an-online-go-board-with-shared-control/55610).
+
+Many people liked the idea and had suggestions for improvements. I started to realize that I was strongly opinionated on design choices that I hadn't even thought to question (more on that later).
+
+From this point on, I simply kept working at a more normal pace, and there are fewer major plot points, but some of the major ones are:
+  - Sync with live OGS games (3-14-2025)
+  - Integration with Twitch (9-3-2025)
+  - Textured shell stones (12-13-2025
+  - Branding and name change (12-30-2025)
+
+Some more snapshots along the way:
+
+![20250522]({{ site.baseurl }}/assets/golab5.png)
+
+![20250601]({{ site.baseurl }}/assets/golab6.png)
+
+![20251018]({{ site.baseurl }}/assets/golab7.png)
+
+![20251213]({{ site.baseurl }}/assets/golab8.png)
+
+I had a fun few days in December implementing customizable colors, and I discovered an interesting [page on color contrast](https://ux.stackexchange.com/questions/107318/formula-for-color-contrast-between-text-and-background):
+
+![color1]({{ site.baseurl }}/assets/color1.png)
+
+![color1]({{ site.baseurl }}/assets/color2.png)
+
+![color1]({{ site.baseurl }}/assets/color3.png)
+
+![color1]({{ site.baseurl }}/assets/color4.png)
+
