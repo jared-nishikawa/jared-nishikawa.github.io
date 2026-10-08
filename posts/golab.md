@@ -122,13 +122,13 @@ Websockets are awesome. But they can be annoying.
 
 The server sits behind Cloudflare, which accepts websocket connections, fortunately. However, websocket connections to Cloudflare get disconnected after 60 seconds, so I have to ping every 30 seconds to keep the connection alive.
 
-Websockets on firefox have a built-in exponential backoff on reconnections. This drove me (somewhat) crazy while testing: I couldn't figure out why my reconnections just get slower and slower while I was trying to troubleshoot. [1](https://stackoverflow.com/questions/59548618/firefox-doesnt-close-websocket-immediately-on-connection-error) [2](https://bugzilla.mozilla.org/show_bug.cgi?id=711793) [3](https://bug711793.bmoattachments.org/attachment.cgi?id=637655)
+Websockets on firefox have a built-in exponential backoff on reconnections. This drove me (somewhat) crazy while testing: I couldn't figure out why my reconnections just get slower and slower while I was trying to troubleshoot. [[1]](https://stackoverflow.com/questions/59548618/firefox-doesnt-close-websocket-immediately-on-connection-error) [[2]](https://bugzilla.mozilla.org/show_bug.cgi?id=711793) [[3]](https://bug711793.bmoattachments.org/attachment.cgi?id=637655)
 
 ### The Game Tree
 
 ![explorer]({{ site.baseurl }}/assets/explorer.png)
 
-If implemented suboptimally, the game tree explorer is the most graphic-intensive part of the whole website. Hundreds (or potentially even thousands) of nodes may slow down the website to a crawl.
+If implemented suboptimally, the game tree explorer is the most graphic-intensive part of the whole website. Hundreds (or potentially even thousands) of nodes may slow the website to a crawl.
 
 Solution: only render the nodes that are actually visible.
 
@@ -156,4 +156,4 @@ Solution: await the successful websocket connection before uploading.
 
 This is probably obvious to veteran string manipulators, but during parsing I was doing tons of string allocations (starting out with `result := "("` and growing arbitrarily). This became slow when the strings were very large (I only noticed while running benchmarks of hundreds or thousands of merged SGFs).
 
-Solution: use string builders. Strings are inherently immutable, so doing a bunch of concatenations make new objects in memory. String builders use mutable internal buffers.
+Solution: use string builders. Strings are inherently immutable, so doing a bunch of concatenations makes new objects in memory. String builders use mutable internal buffers.
