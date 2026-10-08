@@ -60,7 +60,7 @@ Here are a few snapshots that showed major design changes in these two months:
 
 ## Beta Release
 
-At some point, it felt like I had something worth sharing with the Go community. I [made another post on the OGS forums](https://forums.online-go.com/t/an-online-go-board-with-shared-control/55610).
+At some point, it felt like I had something worth sharing with the Go community. I [made another post on the OGS forums](https://forums.online-go.com/t/an-online-go-board-with-shared-control/55610). (2-24-2025).
 
 ## Heads Down
 
