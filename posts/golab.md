@@ -1,6 +1,6 @@
 # Go Lab
 
-[TL;DR](https://github.com/golab/board)
+TL;DR [Go Lab](https://github.com/golab/board) is the first big project that I carried through from beginning to end, becoming half research project and half public service.
 
 ## Backstory
 
@@ -58,9 +58,11 @@ Here are a few snapshots that showed major design changes in these two months:
 
 ![20250218]({{ site.baseurl }}/assets/golab4.png)
 
+## Beta Release
+
 At some point, it felt like I had something worth sharing with the Go community. I [made another post on the OGS forums](https://forums.online-go.com/t/an-online-go-board-with-shared-control/55610).
 
-Many people liked the idea and had suggestions for improvements. I started to realize that I was strongly opinionated on design choices that I hadn't even thought to question (more on that later).
+## Heads Down
 
 From this point on, I simply kept working at a more normal pace, and there are fewer major plot points, but some of the major ones are:
   - Sync with live OGS games (3-14-2025)
@@ -78,6 +80,8 @@ Some more snapshots along the way:
 
 ![20251213]({{ site.baseurl }}/assets/golab8.png)
 
+### Tangent: Colors
+
 I had a fun few days in December implementing customizable colors, and I discovered an interesting [page on color contrast](https://ux.stackexchange.com/questions/107318/formula-for-color-contrast-between-text-and-background):
 
 ![color1]({{ site.baseurl }}/assets/color1.png)
@@ -88,3 +92,68 @@ I had a fun few days in December implementing customizable colors, and I discove
 
 ![color1]({{ site.baseurl }}/assets/color4.png)
 
+## Full Release
+
+I really wanted to have the textured shell stones and finalized branding before I made another announcement. I agonized for months over the right name (I think it's a good sign that nearly a year on I still feel very happy about the name Go Lab), and then commissioned a graphic designer to create the logo, as well as the textured shell stone image files.
+
+[Final post to the OGS forums](https://forums.online-go.com/t/go-lab-an-online-multi-user-go-board/59244). (1-30-2026).
+
+Concluding thoughts:
+
+  - I accomplished what I set out to do, and I learned a LOT in the process.
+  - I've been programming since I was a kid, but this was the first project that I felt a deep connection to, and I very much wanted to see it through to a public launch.
+  - This project was academically fulfilling, as it gave me the chance to implement interesting algorithms (for example, DFS features heavily in the game logic, and I'm rather proud of the SGF parser).
+  - I wrote this by hand, no vibe-coding.
+  - Despite an essentially silent discord community, my logs tell me I have daily active users.
+
+Development has slowed and other priorities have taken front seat in my life, but I plan to keep the server going and do occasional bug fixes and patches in the future!
+
+Thanks for reading!
+
+## Appendix: Lessons Learned
+
+### Canvas vs SVG
+
+Canvas is an HTML element used for drawing graphics on webpages. At first I assumed this would be the natural choice for the Go board. But it turns out that using SVG elements was more performant.
+
+### Websockets
+
+Websockets are awesome. But they can be annoying.
+
+The server sits behind Cloudflare, which accepts websocket connections, fortunately. However, websocket connections to Cloudflare get disconnected after 60 seconds, so I have to ping every 30 seconds to keep the connection alive.
+
+Websockets on firefox have a built-in exponential backoff on reconnections. This drove me (somewhat) crazy while testing: I couldn't figure out why my reconnections just get slower and slower while I was trying to troubleshoot. [1](https://stackoverflow.com/questions/59548618/firefox-doesnt-close-websocket-immediately-on-connection-error) [2](https://bugzilla.mozilla.org/show_bug.cgi?id=711793) [3](https://bug711793.bmoattachments.org/attachment.cgi?id=637655)
+
+### The Game Tree
+
+![explorer]({{ site.baseurl }}/assets/explorer.png)
+
+If implemented suboptimally, the game tree explorer is the most graphic-intensive part of the whole website. Hundreds (or potentially even thousands) of nodes may slow down the website to a crawl.
+
+Solution: only render the nodes that are actually visible.
+
+Another problem I ran into: constantly deleting and adding new nodes to the DOM causes massive memory use until garbage is collected.
+
+Solution: reuse elements from an "element pool." Expand the pool when necessary.
+
+For stress testing this, I have a zip file (about 100KB) containing around 150 SGF files. Altogether, the game tree has more than 30,000 nodes. This should be an order of magnitude more than anyone will load, and Go Lab is able to handle it.
+
+### Client/Server Sync
+
+This one was a huge pain. Basically, the way I initially hacked it together, the frontend and backend were doing simultaneous calculations on the board state and game tree, and it was written in a way that they SHOULD always match. But they didn't always match, and this caused many annoying bugs.
+
+The original model is a fundamentally flawed paradigm. The backend should do the computation, and the frontend should receive the results and display them.
+
+I finally ripped this out and redesigned it in August 2025. The backend now stores state and the frontend simply queries it.
+
+### Android + Chrome
+
+When uploading a file, the file picker is opened and Chrome gets sent to the background. After about 5 seconds, the websocket connection closes. (So, if you picked a file fast enough, you wouldn't encounter this bug).
+
+Solution: await the successful websocket connection before uploading.
+
+### String Builders
+
+This is probably obvious to veteran string manipulators, but during parsing I was doing tons of string allocations (starting out with `result := "("` and growing arbitrarily). This became slow when the strings were very large (I only noticed while running benchmarks of hundreds or thousands of merged SGFs).
+
+Solution: use string builders. Strings are inherently immutable, so doing a bunch of concatenations make new objects in memory. String builders use mutable internal buffers.
