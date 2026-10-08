@@ -19,6 +19,7 @@
   </head>
   <body>
       <div id="header">
+            <!--
         <nav>
           <ul>
             <li class="fork"><a href="{{ site.github.repository_url }}">View On GitHub</a></li>
@@ -29,13 +30,14 @@
             {% endif %}
           </ul>
         </nav>
+            -->
       </div><!-- end header -->
 
     <div class="wrapper">
 
       <section>
         <div id="title">
-          <h1>{{ site.title | default: site.github.repository_name }}</h1>
+            <h1><a href="/">{{ site.title | default: site.github.repository_name }}</a></h1>
           <p>{{ site.tagline | default: site.description | default: site.github.project_tagline }}</p>
           <hr>
         </div>

@@ -33,7 +33,7 @@ So I got to work. According to the git commits on my first draft, between 10-9-2
 
 ![20231019]({{ site.baseurl }}/assets/golab1.png)
 
-If I remember right, the arrow buttons were cosmetic only, there was no logic to allow for moving through a game tree (besides adding stones). But I could load the same board state in two different browser windows, and (through the magic of websockets) input from one window would be reflected in the other. 
+If I remember right, the arrow buttons were cosmetic only, there was no logic to allow for moving through a game tree (besides adding stones). But the core mechanic (shared board state) was there: I could load the same board in two different browser windows, and (through the magic of websockets) input from one window would be reflected in the other.  I had a proof of concept.
 
 ## Catastrophe Strikes
 
@@ -67,7 +67,7 @@ At some point, it felt like I had something worth sharing with the Go community.
 From this point on, I simply kept working at a more normal pace, and there are fewer major plot points, but some of the major ones are:
   - Sync with live OGS games (3-14-2025)
   - Integration with Twitch (9-3-2025)
-  - Textured shell stones (12-13-2025
+  - Textured shell stones (12-13-2025)
   - Branding and name change (12-30-2025)
 
 Some more snapshots along the way:
@@ -106,7 +106,7 @@ Concluding thoughts:
   - I wrote this by hand, no vibe-coding.
   - Despite an essentially silent discord community, my logs tell me I have daily active users.
 
-Development has slowed and other priorities have taken front seat in my life, but I plan to keep the server going and do occasional bug fixes and patches in the future!
+Development has slowed and other priorities have taken front seat in my life (if you've been reading closely, you know what I'm referring to), but I plan to keep the server going and do occasional bug fixes and patches in the future!
 
 Thanks for reading!
 
