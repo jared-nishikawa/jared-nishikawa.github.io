@@ -5,10 +5,7 @@ title: Claude Plays a Puzzle Game
 
 <h1>Claude Plays a Puzzle Game</h1>
 
-<p>A little browser port of EZ Maze, playable right here. Use the arrow keys or
-WASD to move; the goal is to reach the key on each level. Some tiles move when
-you do &mdash; with you, against you, or perpendicular &mdash; so getting to the
-key is the puzzle.</p>
+<p>In 2013, I wrote a puzzle game. I never really gave it a name, so let's call it Deadlock. In Deadlock, you use arrow keys (or WASD) to guide the Dude to the cupcake:</p>
 
 <style>
   /* scoped to the game so it sits inside the Midnight content column */
@@ -33,6 +30,120 @@ key is the puzzle.</p>
     <b>Arrows / WASD</b> move &nbsp;&middot;&nbsp; <b>R</b> restart &nbsp;&middot;&nbsp; <b>P/Q</b> next/prev level &nbsp;&middot;&nbsp; <b>Enter</b> start
   </div>
 </div>
+
+<h2>Port</h2>
+
+<p>I've been using Claude code to approach old problems I haven't thought about in years. Hopefully I'll be making more posts to discuss these. But for some reason, I remembered this little puzzle game, and I thought I would see what Claude was able to do with it.</p>
+
+<p>The first step was to (prompt Claude to) port the game to Javascript. The original was in C++/SDL. The port was easy enough, the result is above. Please feel free to give the levels a shot!</p>
+
+<h2>Solver</h2>
+
+<p>Next I asked Claude to try solving as many levels as it could. I've had Claude provid eits own analysis:</p>
+
+<blockquote>
+<h3>Deadlock: JS port, automated solver, and a mechanic I missed</h3>
+
+<p><em>Deadlock</em> is a small C++/SDL puzzle game: guide a little robot to a cupcake across 18 levels. I ported it to a single self-contained HTML file, then built a solver to answer a simple question: <strong>can it beat the levels?</strong> The answer is now <strong>17 of 18, each in under 10 seconds</strong>. Getting there needed one hint-driven correction to how I understood the game.</p>
+
+<h4>The game is not really a maze</h4>
+
+<p>The walls are almost incidental. The puzzle is the <strong>moving blocks</strong>: every frame, each block moves in response to how <em>you</em> moved on the previous frame.</p>
+
+<table>
+  <tr><th>Color</th><th>Types</th><th>Behavior</th></tr>
+  <tr><td>Blue</td><td>3, 4, 5</td><td>moves <strong>with</strong> you (vertical, horizontal, both)</td></tr>
+  <tr><td>Green</td><td>6, 7, 8</td><td>moves <strong>opposite</strong> you (type 8 is a point mirror)</td></tr>
+  <tr><td>Red</td><td>9, 10, 11</td><td>moves <strong>perpendicular</strong> (your horizontal drives its vertical, and vice versa)</td></tr>
+</table>
+
+<p>Blocks can't overlap walls, each other, or you. The usual trick is to ram a block into a wall so it gets stuck while you keep moving, which knocks it out of sync with you.</p>
+
+<h4>The miss: the cupcake</h4>
+
+<p>Level 10 has one green "point mirror" block. While neither of you is stuck, it conserves a quantity:</p>
+
+<pre><code>dudeX + blockX = constant
+dudeY + blockY = constant</code></pre>
+
+<p>That pins your midpoint with the block to the center of the level's only one-tile-wide corridor, so you can never get past each other. My solver searched every reachable state and reported the level <strong>unsolvable</strong>. I responded by making the search finer and finer (2px stopping points, then diagonal movement), and none of it helped.</p>
+
+<p>The user had to walk me in with three hints:</p>
+<ol>
+  <li><em>"there's kind of a secret mechanic in level 10 that i don't think you're really getting"</em></li>
+  <li><em>"what are ALL the types of tiles"</em>, which led me to the invariant (why it's hard) but not the way out</li>
+  <li><em>"how do the moving blocks interact with the cupcake"</em>, which pointed straight at it</li>
+</ol>
+
+<p>The original source treats the cupcake differently depending on who touches it:</p>
+
+<pre><code>if (tiles[t]-&gt;get_type() &gt;= 1 &amp;&amp; tiles[t]-&gt;get_type() &lt; TILE_SPRITES) {
+    if (isDude &amp;&amp; tiles[t]-&gt;get_type() == 1) return false;              // you pass through
+    else if (check_collision(box, tiles[t]-&gt;get_box())) return true;  // blocks are stopped
+}</code></pre>
+
+<p><strong>The cupcake is solid to blocks.</strong> It's the asymmetric wall you jam the mirror block against. My JS port had this right, but when I rewrote the physics for the solver I simplified block collision and dropped it. Adding one line solved level 10 in 0.2 seconds.</p>
+
+<p>The lesson: when an exhaustive search says "impossible", that's a statement about <em>your model</em>, not the game. I should have audited the rules, not upgraded the search.</p>
+
+<h4>Iterating on the solver</h4>
+
+<p>Every variant ran all 18 levels in parallel with a 10-second cap per level. Every reported solution was replayed through the exact simulator to confirm it reaches the cupcake.</p>
+
+<table>
+  <tr><th>#</th><th>Change</th><th>Solved</th><th>Notes</th></tr>
+  <tr><td>0</td><td>Python A*, stops every 2px near blocks</td><td>7/18</td><td>baseline</td></tr>
+  <tr><td>1</td><td>Stop moves only on "events" (alignments, jams)</td><td>3/18</td><td>events fired too often; reverted</td></tr>
+  <tr><td>2</td><td>Weighted A* (w = 2, 5)</td><td>7/18</td><td>no change</td></tr>
+  <tr><td>3</td><td>Coarse tile-by-tile search, fine search as fallback</td><td>11/18</td><td>matches the old 120-second result</td></tr>
+  <tr><td>4</td><td><strong>Port the solver to Node</strong>, same logic</td><td><strong>17/18</strong></td><td>~100&times; faster; biggest single win</td></tr>
+  <tr><td>5</td><td>Weighted A* on level 18 (up to w = 10)</td><td>&mdash;</td><td>no help: stuck, not wandering</td></tr>
+  <tr><td>6</td><td><strong>Novelty search</strong>: explore states with something new first</td><td>17/18</td><td>hard levels 5&ndash;10&times; faster</td></tr>
+  <tr><td>7</td><td>Novelty over (dude, block) position pairs</td><td>17/18</td><td>no change on level 18</td></tr>
+</table>
+
+<p>What the iterations showed:</p>
+<ul>
+  <li><strong>Speed mattered most.</strong> The coarse model was already good enough; Python just couldn't run it fast enough. Frame counts match the Python solver exactly wherever both solved a level, which is good evidence the port has the same physics.</li>
+  <li><strong>The fine 2px search was never needed.</strong> With the cupcake rule in, coarse search solves level 10 alone. My earlier precision work was compensating for the missing rule.</li>
+  <li><strong>There's a speed/quality trade-off.</strong> Novelty search is fastest but finds longer solutions (level 9: 900 frames &rarr; 2,672). Plain A* still finds the shortest.</li>
+</ul>
+
+<h4>Results</h4>
+
+<table>
+  <tr><th>Level</th><th>Blocks</th><th>Shortest found (A*)</th><th>Novelty search time</th></tr>
+  <tr><td>1</td><td>0</td><td>225 frames</td><td>0.0s</td></tr>
+  <tr><td>2</td><td>1</td><td>375</td><td>0.2s</td></tr>
+  <tr><td>3</td><td>2</td><td>465</td><td>0.2s</td></tr>
+  <tr><td>4</td><td>2</td><td>405</td><td>0.2s</td></tr>
+  <tr><td>5</td><td>1</td><td>165</td><td>0.0s</td></tr>
+  <tr><td>6</td><td>1</td><td>165</td><td>0.0s</td></tr>
+  <tr><td>7</td><td>3</td><td>915</td><td>0.4s</td></tr>
+  <tr><td>8</td><td>1</td><td>375</td><td>0.3s</td></tr>
+  <tr><td>9</td><td>2</td><td>900</td><td>0.6s</td></tr>
+  <tr><td>10</td><td>1</td><td>405</td><td>0.2s</td></tr>
+  <tr><td>11</td><td>2</td><td>780</td><td>0.6s</td></tr>
+  <tr><td>12</td><td>4</td><td>1,378</td><td>0.8s</td></tr>
+  <tr><td>13</td><td>1</td><td>270</td><td>0.1s</td></tr>
+  <tr><td>14</td><td>2</td><td>360</td><td>2.1s</td></tr>
+  <tr><td>15</td><td>4</td><td>585</td><td>0.2s</td></tr>
+  <tr><td>16</td><td>3</td><td>945</td><td>0.1s</td></tr>
+  <tr><td>17</td><td>2</td><td>780</td><td>0.1s</td></tr>
+  <tr><td>18</td><td>27</td><td>unsolved</td><td>timeout</td></tr>
+</table>
+
+<h4>Why level 18 is still open</h4>
+
+<p>Level 18 ("Through a gauntlet") has <strong>27 blocks</strong>, including a row of 15 red blocks that shift vertically on every sideways step. Mapping where the player gets to shows it reaches two cells from the cupcake but <strong>never enters column 19</strong>. A blue block there copies your vertical moves, and the neighboring columns span exactly the same rows, so ramming it into a wall can't separate you from it. The way through probably needs another block to wedge it in place: the green block beside it moves opposite to you and could slide into column 19. With so many blocks reshuffling on every move, the search drowns in near-identical states before finding that. Level 18 isn't shown to be unsolvable, only unsolved in 10 seconds by these approaches.</p>
+
+</blockquote>
+
+<p>For the record, I had Claude up the timeout to 30 seconds, and it still was unable to solve level 18.</p>
+
+Here is a rendered GIF of Claude's solver solving level 12:
+
+<img src=/assets/level12-solve.gif />
 
 {% raw %}
 <script>
@@ -61,7 +172,7 @@ const LEVELS = [
 ];
 
 
-/* ===== EZ Maze — faithful JS port of linux-port.cpp ===== */
+/* ===== Deadlock — faithful JS port of linux-port.cpp ===== */
 (() => {
   "use strict";
 
@@ -275,7 +386,7 @@ const LEVELS = [
 
   function renderMenu() {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    const lines = ["EZ Maze", "Use arrow keys to move", "Use 'r' to restart a level", "Press ENTER to begin"];
+    const lines = ["Deadlock", "Use arrow keys to move", "Use 'r' to restart a level", "Press ENTER to begin"];
     for (let i = 0; i < lines.length; i++) drawText(lines[i], 20, 30 * i + 50, "#fff", false);
     ctx.drawImage(dudeImg, 210, 210);
     drawText("P/Q skip levels", 20, 30 * 4 + 50, "#888", false);
@@ -283,7 +394,7 @@ const LEVELS = [
 
   function renderEnd() {
     ctx.fillStyle = "#000"; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-    drawText("Thank you for playing EZ Maze!", 20, 150, "#fff", false);
+    drawText("Thank you for playing Deadlock!", 20, 150, "#fff", false);
     ctx.drawImage(dudeImg, 20, 240);
     drawText("Press ENTER to play again", 20, 300, "#888", false);
   }
