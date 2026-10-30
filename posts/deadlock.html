@@ -1,0 +1,321 @@
+---
+layout: default
+title: Claude Plays a Puzzle Game
+---
+
+<h1>Claude Plays a Puzzle Game</h1>
+
+<p>A little browser port of EZ Maze, playable right here. Use the arrow keys or
+WASD to move; the goal is to reach the key on each level. Some tiles move when
+you do &mdash; with you, against you, or perpendicular &mdash; so getting to the
+key is the puzzle.</p>
+
+<style>
+  /* scoped to the game so it sits inside the Midnight content column */
+  #game-wrap { text-align: center; margin: 24px 0; }
+  #game {
+    image-rendering: pixelated;
+    background: #000;
+    border: 2px solid #444;
+    box-shadow: 0 8px 40px rgba(0,0,0,.6);
+    width: 100%;
+    max-width: 660px;
+    aspect-ratio: 660 / 450;
+    height: auto;
+  }
+  #hint { margin-top: 12px; font-size: 13px; color: #999; }
+  #hint b { color: #ccc; }
+</style>
+
+<div id="game-wrap">
+  <canvas id="game" width="660" height="450" tabindex="0"></canvas>
+  <div id="hint">
+    <b>Arrows / WASD</b> move &nbsp;&middot;&nbsp; <b>R</b> restart &nbsp;&middot;&nbsp; <b>P/Q</b> next/prev level &nbsp;&middot;&nbsp; <b>Enter</b> start
+  </div>
+</div>
+
+{% raw %}
+<script>
+const TILES_B64 = "iVBORw0KGgoAAAANSUhEUgAAAWgAAAAeCAYAAAAB6YS9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAMDSURBVHhe7d0xbhNBFMbxMS2iRiBuwBVsKt8AoSBO446GCyB6JIS4gSvsA0RCdIlorCAoaCwKKrOPzBPjYXbHxt7xm/X/t3ryerOzT3ZWn4ZJgkc369XGnZHryy9+r5z5fO6m06l/Vg59y6BvGefY947fN+fBvUdbVSt5k0+BvmXQt4xz7WsuoDWQv65XW/UxCOtaApubuQz6lkHfMsK+pgJaQlgDOXbhH5X1kOZmLoO+ZdC3jLhvFWvQbWH8rqkniTDvEq9Bj8djv3dcs9nM792K17C6+o5GfqfFpuM7dkjfQ9T4ekfN1mXTbG2qfJ9P9XoP+AbX+D4f8/WaXYMGgHNXRUDLTFkqFD8HgKGpIqCf+0cNag3ni+afCg8r+YEhAOzLfEBLAG+aIJYwDulz+RohDWCIqlqDllDWAoChMx3QOnvOYRYNYIhMBrSErdRisfBH8uRcHYd28htAfVROaoxWTmqMllXyK219bDnhufGWE54bb2albopjVE5qjFZOaoxWxFRAa8C+fer+1GQyccvl0n+1nZwj5+o4ghrAEJgJ6DCYYxLAqaBuOx4GNQDUykRAazjH5JjMjJUGchzMOnuOEdIAanbygG4LZ6UhHQa10uO58YQ0gBqZ/CFhTEI2DOowmLvCGQBqdvKAvlmv3IsP/kmGBvI+wSzXlh4AUBsTM2gN6U/f/9b/Cq9BOAOomZklDgnSlwvnrn44t/61HbT7lIyVa8i1COd/yd/99FE5qTFaOakxWlbJf93Zx5YTnhtvOeG58WZW6qY4RuWkxmjlpMZoRcyuQUvQhtVl1/MAoCamAlpmvO8/O/ftpz8QCEM4rpCMlWswewZQO7MzaAA4d+YCumsWncPsGcCQMIMGAKMGF9DPHvsdAKic2U/1lj/P1rC9f/f2sY0uh+yyvBF+qnfJj1YPPxWYvv2hbxn0LcPsDFrXonU9uqv0vH3Wnku+ySH6lkHfMujbL9NLHBK4YVC3lZ63K26qMuhbBn3LOEVfs0scfXn96o3fAwDLnPsNDUfm00Xg5g4AAAAASUVORK5CYII=";
+const EZ_B64 = "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAeCAYAAAA7MK6iAAABmklEQVR4nMWWPY7CMBCFnxF1uj0ER6BwiRAnoM8pVjSWG7SnSL8nSBBoGwq0FSXbp6TjArMFmWA7tsERgSclip3J+zz+jcBNhNdItDcARJfhiX+/U0xmBwAQo+FxfolXZcvirN+W8ditEJld7tsb93zGbjCRPbmFEMnwR3xGsWAAKMuy0/pUqM/nbWMcBVdV9RSIzycIHhIKc3LR5ToByrK0AhaLRdLkivmcttO23Nkyh1pODOUtswWbrQmp+SioBI8WjHedTjHRfr9PcpZS3vWOvSQASIU68CAjtJxIKdULaKpptHcIfeDkru0Dd8FPge52O6vc9J4F7xyL/KHWOnl8TaBSClLKoIcXnCo3w0cUBUsp0XeSaa2T4sm8lFLk1j165Xnuq/dmbP308V7bJ+O6rm+mjWfzk0e8roNdfdpOMZlpL7yuaxRF4W0Uv3OhrkywENm1O67QAzarJQBgrjXyPI9mxiqKApvVEsf1D0R2br2Y0XlwRAxlzdffgVBbDGV94uzlBMFf+AiaG2bRuD5g3DkmU45TL+Mfy9zaRRwzOi4AAAAASUVORK5CYII=";
+const LEVEL_MESSAGES = ["", "The hardest puzzle", "Seems impossible", "When you're blocked in", "Every direction", "The obvious method", "Just doesn't work", "Combine what you know", "Flip how you think", "Apply old ideas", "But don't get stuck", "With the right push", "It might just work", "Review the basics", "Again, a good problem", "Requires precision", "When you feel yourself going in circles", "You might need a helping hand", "Through a gauntlet"];
+const LEVELS = [
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 04 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 03 00 00 00 04 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 00 00 00 00 00 00 -1 00 00 00 00 00 05 00 00 01 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 00 00 00 00 00 00 -1 00 00 05 00 00 00 00 00 01 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 04 00 00 00 00 00 00 00 00 00 -1 00 00 00 00 00 05 03 00 01 02\n02 02 00 02 00 02 02 02 00 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 00 00 00 02 02 02 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 -1 00 00 00 00 00 00 00 00 00 00 00 06 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 07 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 -1 00 00 00 00 00 00 00 00 00 00 06 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 -1 00 00 00 00 00 00 08 00 00 00 00 00 01 02\n02 00 00 00 00 00 00 00 00 00 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 00 00 00 00 00 00 00 00 00 02\n02 00 00 02 00 00 00 08 00 00 00 00 00 00 -1 00 00 00 00 03 01 02\n02 00 00 00 00 00 00 00 00 00 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 02 02 02 02 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 07 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 06 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 -1 00 00 00 00 00 00 00 00 00 00 03 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 04 00 00 00 00 00 00 00 00 00 02 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 -1 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 00 01 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 -1 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 09 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 10 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 02 02 02 02 02 02 02 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 00 00 00 00 00 04 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 03 00 00 -1 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00 00 00 01 02\n02 00 00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 00 00 00 00 00 00 02 09 00 00 00 00 00 00 02\n02 00 00 00 00 02 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 02 02 00 02 02 02 02 02 02 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 02 00 00 00 00 10 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 00 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 01 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 02 02 02 02 02 02 02 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 00 00 00 00 00 00 00 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 00 02 02 02 02 02 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 00 02 00 00 00 02 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 03 02 00 02 00 -1 00 02 09 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 00 02 00 00 00 02 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 00 02 00 02 02 02 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 00 00 00 00 00 00 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 02 02 02 02 02 02 02 00 02 00 02 02 02 02 02\n02 02 02 02 02 02 00 00 00 00 07 00 00 00 00 00 00 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 -1 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02 02 02 02 02 02\n02 00 02 02 02 02 02 02 02 02 02 00 00 00 02 00 02 02 02 02 02 02\n02 00 00 00 02 01 00 00 00 00 02 00 02 00 02 00 02 02 02 02 02 02\n02 02 02 00 02 02 02 00 00 00 02 00 00 00 02 00 02 02 02 02 02 02\n02 02 02 00 00 00 02 03 00 00 00 00 00 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 00 02 02 02 02 02 02 02 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 00 00 00 00 00 02 02 02 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 00 02 02 02 00 02 02 02 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 00 00 00 02 00 00 00 02 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 02 02 00 02 02 02 00 02 00 02 00 02 02 02 02 02 02\n02 02 02 02 02 02 02 00 00 00 02 00 00 00 00 00 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 00 02 02 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 00 00 11 02 02 02 02 02 02 02 02 02 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+  "02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02\n02 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 02\n02 00 02 00 00 00 00 00 02 00 02 00 00 00 02 00 00 02 00 00 00 02\n02 05 02 00 00 00 00 00 02 00 02 00 00 00 02 00 00 02 02 02 00 02\n02 00 02 00 00 00 00 00 02 00 02 00 00 00 02 00 02 00 00 00 00 02\n02 00 00 00 02 00 00 00 00 00 00 00 00 00 00 00 02 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 02\n02 09 09 09 09 09 09 09 00 09 09 09 09 09 09 09 09 00 00 00 01 02\n02 00 00 00 00 07 00 00 00 00 02 00 00 00 00 00 00 00 00 00 00 02\n02 00 00 00 07 00 00 00 00 00 00 00 00 00 00 00 00 00 07 00 00 02\n02 -1 00 00 00 00 00 00 03 00 02 00 00 00 00 00 00 00 00 03 00 02\n02 00 04 00 00 00 00 00 00 00 00 00 02 00 00 00 00 00 00 00 00 02\n02 00 00 00 00 00 07 00 00 00 07 07 07 07 02 00 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 00 00 00 00 00 02\n02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02 02",
+];
+
+
+/* ===== EZ Maze — faithful JS port of linux-port.cpp ===== */
+(() => {
+  "use strict";
+
+  // --- Constants (from the original) ---
+  const SCREEN_WIDTH = 660, SCREEN_HEIGHT = 450;
+  const TILE_WIDTH = 30, TILE_HEIGHT = 30;
+  const COLS = SCREEN_WIDTH / TILE_WIDTH;   // 22
+  const ROWS = SCREEN_HEIGHT / TILE_HEIGHT; // 15
+  const TOTAL_TILES = COLS * ROWS;          // 330
+  const TILE_SPRITES = 12;
+  const DUDE_WIDTH = 30, DUDE_HEIGHT = 30, DUDE_VELO = 2;
+  const TOTAL_LEVELS = 18;
+  const STEP_MS = 1000 / 60;
+
+  // --- Canvas ---
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = false;
+
+  // sprite-sheet clip rects: clip[i] = {x:30*i, y:0, w:30, h:30}
+  const clip = [];
+  for (let i = 0; i < TILE_SPRITES; i++) clip.push({ x: 30 * i, y: 0, w: TILE_WIDTH, h: TILE_HEIGHT });
+
+  // --- Assets ---
+  const tileSheet = new Image();
+  const dudeImg = new Image();
+  let assetsLoaded = 0;
+  function onAsset() { if (++assetsLoaded === 2) start(); }
+  tileSheet.onload = onAsset; dudeImg.onload = onAsset;
+  tileSheet.src = "data:image/png;base64," + TILES_B64;
+  dudeImg.src = "data:image/png;base64," + EZ_B64;
+
+  // --- Input state ---
+  const held = { up: false, down: false, left: false, right: false };
+  const KEYMAP = {
+    ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right",
+    w: "up", s: "down", a: "left", d: "right",
+    W: "up", S: "down", A: "left", D: "right",
+  };
+  let pendingEnter = false; // edge-triggered for menus
+
+  window.addEventListener("keydown", (e) => {
+    const dir = KEYMAP[e.key];
+    if (dir) { held[dir] = true; e.preventDefault(); return; }
+    if (e.repeat) return;
+    switch (e.key) {
+      case "Enter": pendingEnter = true; e.preventDefault(); break;
+      case "r": case "R": if (state === "play") loadLevel(levelNum); break;
+      case "p": case "P": if (state === "play") { levelNum = Math.min(TOTAL_LEVELS, levelNum + 1); loadLevel(levelNum); } break;
+      case "q": case "Q": if (state === "play") { levelNum = Math.max(1, levelNum - 1); loadLevel(levelNum); } break;
+    }
+  });
+  window.addEventListener("keyup", (e) => {
+    const dir = KEYMAP[e.key];
+    if (dir) { held[dir] = false; e.preventDefault(); }
+  });
+
+  function keysUp() { return !(held.up || held.down || held.left || held.right); }
+
+  // --- Collision (edge-touching does NOT count, exactly as the C++) ---
+  function checkCollision(A, B) {
+    if (A.y + A.h <= B.y) return false;
+    if (A.y >= B.y + B.h) return false;
+    if (A.x + A.w <= B.x) return false;
+    if (A.x >= B.x + B.w) return false;
+    return true;
+  }
+
+  // --- World state ---
+  let state = "menu";           // "menu" | "play" | "end"
+  let levelNum = 1;
+  let staticTiles = [];         // {x,y,w,h,type}  types in {0,1,2}
+  let mtiles = [];              // {x,y,w,h,type,self} types in {0..11}
+  let dude = null;              // {x,y,w,h,xVel,yVel,deltaX,deltaY}
+
+  function parseLevel(num) {
+    const toks = LEVELS[num - 1].trim().split(/\s+/).map(Number);
+    staticTiles = new Array(TOTAL_TILES);
+    mtiles = new Array(TOTAL_TILES);
+    let startX = 210, startY = 210;
+    for (let t = 0; t < TOTAL_TILES; t++) {
+      const x = (t % COLS) * TILE_WIDTH;
+      const y = Math.floor(t / COLS) * TILE_HEIGHT;
+      let tok = toks[t];
+      // static tile: valid sprite but >2 collapses to floor; -1 (dude start) -> floor
+      let sType;
+      if (tok === -1) { sType = 0; startX = x; startY = y; }
+      else if (tok >= 0 && tok < TILE_SPRITES) sType = (tok > 2) ? 0 : tok;
+      else sType = 0;
+      staticTiles[t] = { x, y, w: TILE_WIDTH, h: TILE_HEIGHT, type: sType };
+      // mtile: keeps full type; -1 -> 0
+      let mType = (tok >= 0 && tok < TILE_SPRITES) ? tok : 0;
+      mtiles[t] = { x, y, w: TILE_WIDTH, h: TILE_HEIGHT, type: mType, self: t };
+    }
+    dude = { x: startX, y: startY, w: DUDE_WIDTH, h: DUDE_HEIGHT, xVel: 0, yVel: 0, deltaX: 0, deltaY: 0 };
+  }
+
+  // touches a static wall. Faithfully reproduces the original's early-return on the key.
+  function touchesWall(box, isDude) {
+    for (let t = 0; t < TOTAL_TILES; t++) {
+      const ty = staticTiles[t].type;
+      if (ty >= 1 && ty < TILE_SPRITES) {
+        if (isDude && ty === 1) return false;          // dude passes through the key
+        else if (checkCollision(box, staticTiles[t])) return true;
+      }
+    }
+    return false;
+  }
+
+  // touches a moving/solid mtile (type >= 2), excluding self.
+  function touchesMWall(self, box) {
+    for (let t = 0; t < TOTAL_TILES; t++) {
+      const ty = mtiles[t].type;
+      if (ty >= 2 && ty < TILE_SPRITES) {
+        if (checkCollision(box, mtiles[t]) && t !== self) return true;
+      }
+    }
+    return false;
+  }
+
+  function dudeTouchedKey() {
+    for (let t = 0; t < TOTAL_TILES; t++) {
+      if (staticTiles[t].type === 1) return checkCollision(dude, staticTiles[t]);
+    }
+    return false;
+  }
+
+  function moveDude() {
+    // horizontal
+    const tmpx = dude.x;
+    dude.x += dude.xVel;
+    if (dude.x < 0 || dude.x + dude.w > SCREEN_WIDTH ||
+        touchesWall(dude, true) || touchesMWall(-1, dude)) {
+      dude.x -= dude.xVel;
+    }
+    dude.deltaX = dude.x - tmpx;
+    // vertical
+    const tmpy = dude.y;
+    dude.y += dude.yVel;
+    if (dude.y < 0 || dude.y + dude.h > SCREEN_HEIGHT ||
+        touchesWall(dude, true) || touchesMWall(-1, dude)) {
+      dude.y -= dude.yVel;
+    }
+    dude.deltaY = dude.y - tmpy;
+  }
+
+  // moves one mtile using the dude's (previous-frame) delta, with revert-on-collision
+  function moveMtile(mt) {
+    const dx = dude.deltaX, dy = dude.deltaY;
+    const ty = mt.type;
+    const blockedX = () => (mt.x < 0 || mt.x + mt.w > SCREEN_WIDTH ||
+      touchesWall(mt, false) || touchesMWall(mt.self, mt) || checkCollision(mt, dude));
+    const blockedY = () => (mt.y < 0 || mt.y + mt.h > SCREEN_HEIGHT ||
+      touchesWall(mt, false) || touchesMWall(mt.self, mt) || checkCollision(mt, dude));
+
+    // blue: move WITH the dude
+    if (ty === 4 || ty === 5) { mt.x += dx; if (blockedX()) mt.x -= dx; }
+    if (ty === 3 || ty === 5) { mt.y += dy; if (blockedY()) mt.y -= dy; }
+    // green: move OPPOSITE the dude
+    if (ty === 7 || ty === 8) { mt.x -= dx; if (blockedX()) mt.x += dx; }
+    if (ty === 6 || ty === 8) { mt.y -= dy; if (blockedY()) mt.y += dy; }
+    // red: move PERPENDICULAR to the dude
+    if (ty === 10 || ty === 11) { mt.x -= dy; if (blockedX()) mt.x += dy; }
+    if (ty === 9 || ty === 11) { mt.y -= dx; if (blockedY()) mt.y += dx; }
+  }
+
+  function loadLevel(num) {
+    parseLevel(num);
+    state = "play";
+  }
+
+  // --- Update (one fixed 60 Hz step) ---
+  function update() {
+    if (state !== "play") return;
+    // velocity from held keys (net effect matches the original's accumulation)
+    dude.xVel = (held.right ? DUDE_VELO : 0) - (held.left ? DUDE_VELO : 0);
+    dude.yVel = (held.down ? DUDE_VELO : 0) - (held.up ? DUDE_VELO : 0);
+    // mtiles move first (using the dude's delta from the previous frame)
+    for (let t = 0; t < TOTAL_TILES; t++) moveMtile(mtiles[t]);
+    // then the dude
+    moveDude();
+    // win: touch the key with no arrow key held
+    if (dudeTouchedKey() && keysUp()) {
+      levelNum++;
+      if (levelNum > TOTAL_LEVELS) { state = "end"; }
+      else loadLevel(levelNum);
+    }
+  }
+
+  // --- Rendering ---
+  function drawTile(type, x, y, img = tileSheet) {
+    const c = clip[type];
+    ctx.drawImage(img, c.x, c.y, c.w, c.h, x, y, c.w, c.h);
+  }
+
+  function drawText(str, x, y, color, outline) {
+    ctx.font = "bold 20px 'Courier New', monospace";
+    ctx.textBaseline = "top";
+    if (outline) { ctx.lineWidth = 4; ctx.strokeStyle = "#000"; ctx.lineJoin = "round"; ctx.strokeText(str, x, y); }
+    ctx.fillStyle = color;
+    ctx.fillText(str, x, y);
+  }
+
+  function renderPlay() {
+    for (let t = 0; t < TOTAL_TILES; t++) drawTile(staticTiles[t].type, staticTiles[t].x, staticTiles[t].y);
+    for (let t = 0; t < TOTAL_TILES; t++) { const m = mtiles[t]; if (m.type > 1) drawTile(m.type, m.x, m.y); }
+    ctx.drawImage(dudeImg, dude.x, dude.y);
+    const label = "Level " + levelNum + ": " + LEVEL_MESSAGES[levelNum];
+    drawText(label, 9, SCREEN_HEIGHT - 25, "#fff", true);
+  }
+
+  function renderMenu() {
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    const lines = ["EZ Maze", "Use arrow keys to move", "Use 'r' to restart a level", "Press ENTER to begin"];
+    for (let i = 0; i < lines.length; i++) drawText(lines[i], 20, 30 * i + 50, "#fff", false);
+    ctx.drawImage(dudeImg, 210, 210);
+    drawText("P/Q skip levels", 20, 30 * 4 + 50, "#888", false);
+  }
+
+  function renderEnd() {
+    ctx.fillStyle = "#000"; ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+    drawText("Thank you for playing EZ Maze!", 20, 150, "#fff", false);
+    ctx.drawImage(dudeImg, 20, 240);
+    drawText("Press ENTER to play again", 20, 300, "#888", false);
+  }
+
+  function render() {
+    if (state === "play") renderPlay();
+    else if (state === "menu") renderMenu();
+    else renderEnd();
+  }
+
+  // --- Main loop (fixed timestep) ---
+  let acc = 0, last = null;
+  function frame(ts) {
+    if (last === null) last = ts;
+    acc += ts - last; last = ts;
+    if (acc > 200) acc = 200;
+    // consume edge-triggered Enter for menu/end transitions
+    if (pendingEnter) {
+      pendingEnter = false;
+      if (state === "menu") { levelNum = 1; loadLevel(1); }
+      else if (state === "end") { state = "menu"; }
+    }
+    while (acc >= STEP_MS) { update(); acc -= STEP_MS; }
+    render();
+    requestAnimationFrame(frame);
+  }
+
+  function start() {
+    state = "menu";
+    requestAnimationFrame(frame);
+  }
+})();
+
+</script>
+{% endraw %}
